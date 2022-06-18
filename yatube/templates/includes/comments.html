@@ -1,0 +1,39 @@
+{% load custom_filters %}
+{% for error in form.errors %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endfor %}
+{% if user.is_authenticated %}
+    <a class="h6"
+       data-bs-toggle="collapse"
+       href="#add_comment"
+       role="button"
+       aria-expanded="false"
+       aria-controls="add_comment">Добавить комментарий:
+    </a>
+    <div class="card my-4">
+        <div class="collapse" id="add_comment">
+            <div class="card-body">
+                <form method="post" action="{% url 'posts:add_comment' post.id %}">
+                    {% csrf_token %}
+                    <div class="form-group mb-2">{{ form.text|addclass:"form-control" }}</div>
+                    <button type="submit" class="btn btn-primary">Отправить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% for comment in comments %}
+    <div class="media mb-4">
+        <div class="media-body">
+            <div class="row">
+                <h5 class="mt-0 col">
+                    <a href="{% url 'posts:profile' comment.author.username %}">{{ comment.author.username }}</a>
+                </h5>
+                <p class='col text-end'>
+                    {{ comment.created }}
+                </p>
+            </div>
+            <p>
+                {{ comment.text }}
+            </p>
+        </div>
+    </div>
+{% endfor %}
