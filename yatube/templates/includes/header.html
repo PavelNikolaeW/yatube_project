@@ -14,55 +14,69 @@
             </a>
             <button class="navbar-toggler"
                     type="button"
-                    data-toggle="collapse"
-                    data-target="#navbarToggleExternalContent"
-                    aria-controls="navbarToggleExternalContent"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation">
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#offcanvasNavbar"
+                    aria-controls="offcanvasNavbar">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarToggleExternalContent">
-                <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link {{ 'about:author'|activate_if_matched:view_name }}"
-                           href="{% url 'about:author' %}">Об авторе</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ 'about:tech'|activate_if_matched:view_name }}"
-                           href="{% url 'about:tech' %}">Технологии</a>
-                    </li>
-                    {% if user.is_authenticated %}
+            <div class="offcanvas offcanvas-end"
+                 tabindex="-1"
+                 id="offcanvasNavbar"
+                 aria-labelledby="offcanvasNavbarLabel"
+                 style="background-color: lightskyblue">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="offcanvasNavbarLabel">
+                        <span style="color:red">Ya</span>   tube
+                    </h5>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="offcanvas"
+                            aria-label="Закрыть"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link {{ 'posts:post_create'|activate_if_matched:view_name }} "
-                               href="{% url 'posts:post_create' %}">Новая запись</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link link-light {{ 'users:password_change_form'|activate_if_matched:view_name }}"
-                               href="{% url 'users:password_change_form' %}">Изменить пароль</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link link-light" href="{% url 'users:logout' %}">Выйти</a>
-                        </li>
-                        <li>
-                            {% if 'username' in request.resolver_match.kwargs %}
-                                <a class="nav-link {{ request.user|activate_if_matched:request.resolver_match.kwargs.username }}"
-                                   href="{% url 'posts:profile' user %}">Профиль</a>
-                            {% else %}
-                                <a class="nav-link" href="{% url 'posts:profile' user %}">Профиль</a>
-                            {% endif %}
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link link-light {{ 'users:login'|activate_if_matched:view_name }}"
-                               href="{% url 'users:login' %}">Войти</a>
+                            <a class="nav-link {{ 'about:author'|activate_if_matched:view_name }}"
+                               href="{% url 'about:author' %}">Об авторе</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link link-light {{ 'users:signup'|activate_if_matched:view_name }}"
-                               href="{% url 'users:signup' %}">Регистрация</a>
+                            <a class="nav-link {{ 'about:tech'|activate_if_matched:view_name }}"
+                               href="{% url 'about:tech' %}">Технологии</a>
                         </li>
-                    {% endif %}
-                </ul>
+                        {% if user.is_authenticated %}
+                            <li class="nav-item">
+                                <a class="nav-link {{ 'posts:post_create'|activate_if_matched:view_name }} "
+                                   href="{% url 'posts:post_create' %}">Новая запись</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link link-light {{ 'users:password_change_form'|activate_if_matched:view_name }}"
+                                   href="{% url 'users:password_change_form' %}">Изменить пароль</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link link-light" href="{% url 'users:logout' %}">Выйти</a>
+                            </li>
+                            <li>
+                                {% if 'username' in request.resolver_match.kwargs %}
+                                    <a class="nav-link {{ request.user|activate_if_matched:request.resolver_match.kwargs.username }}"
+                                       href="{% url 'posts:profile' user %}">Профиль</a>
+                                {% else %}
+                                    <a class="nav-link" href="{% url 'posts:profile' user %}">Профиль</a>
+                                {% endif %}
+                            </li>
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link link-light {{ 'users:login'|activate_if_matched:view_name }}"
+                                   href="{% url 'users:login' %}">Войти</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link link-light {{ 'users:signup'|activate_if_matched:view_name }}"
+                                   href="{% url 'users:signup' %}">Регистрация</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
+</nav>
 {% endwith %}

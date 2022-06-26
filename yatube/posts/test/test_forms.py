@@ -7,7 +7,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.conf import settings
 
-from ..models import Post
+from ..models import Post, Comment
 
 User = get_user_model()
 
@@ -39,7 +39,6 @@ class PostFormTests(TestCase):
 
     def test_create_post_auth_client(self):
         post_count = Post.objects.count()
-
         image = SimpleUploadedFile(
             name='small.gif',
             content=(
@@ -115,3 +114,60 @@ class PostFormTests(TestCase):
         )
         post = Post.objects.get(id=post_id)
         self.assertNotEqual(post.text, form_data['text'])
+
+
+class CommentFormTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth')
+        cls.post = Post.objects.create(
+            text='test test',
+            author=cls.user,
+        )
+
+    def setUp(self):
+        self.guest_client = Client()
+        self.auth_client = Client()
+        self.auth_client.force_login(CommentFormTest.user)
+
+    def test_create_comment_auth_client(self):
+        comment_count = Comment.objects.count()
+        post_id = CommentFormTest.post.id
+        comment_data = {
+            'post': CommentFormTest.post,
+            'author': CommentFormTest.user,
+            'text': 'test comment'
+        }
+        response = self.auth_client.post(
+            reverse('posts:add_comment', args=[post_id]),
+            data=comment_data,
+            follow=True
+        )
+        self.assertEqual(Comment.objects.count(), comment_count + 1)
+        self.assertRedirects(
+            response,
+            reverse(
+                'posts:post_detail',
+                args=[post_id]
+            )
+        )
+        self.assertTrue(Comment.objects.filter(text='test comment'))
+
+    def test_create_comment_guest_client(self):
+        comment_count = Comment.objects.count()
+        post_id = CommentFormTest.post.id
+        comment_data = {
+            'post': CommentFormTest.post,
+            'text': 'test comment'
+        }
+        response = self.guest_client.post(
+            reverse('posts:add_comment', args=[post_id]),
+            data=comment_data,
+            follow=True
+        )
+        self.assertEqual(Comment.objects.count(), comment_count)
+        self.assertRedirects(
+            response,
+            f'/auth/login/?next=/posts/{post_id}/comment/'
+        )

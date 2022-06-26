@@ -8,7 +8,6 @@ from django.views.decorators.cache import cache_page
 from .models import Group, Post, Comment, Follow
 from .forms import PostForm, CommentForm
 
-
 POSTS_PER_PAGE: int = 10
 
 User = get_user_model()
@@ -61,7 +60,13 @@ def post_create(request):
 
 def profile(request, username):
     user = get_object_or_404(User, username=username)
-    followers = Follow.objects.get(user=user)
+    is_following = (
+        request.user.is_authenticated
+        and Follow.objects.filter(
+            user=request.user,
+            author=user,
+        ).exists()
+    )
     paginator = Paginator(
         user.posts.select_related('author').all(),
         POSTS_PER_PAGE
@@ -72,8 +77,9 @@ def profile(request, username):
         'username': user,
         'page_obj': page_obj,
         'count': paginator.count,
-        'following': followers
+        'following': is_following
     }
+    print(page_obj.paginator)
     return render(request, 'posts/profile.html', context)
 
 
@@ -126,14 +132,33 @@ def add_comment(request, post_id):
 
 @login_required
 def follow_index(request):
-    context = {}
+    posts = Post.objects.filter(
+        author__following__user=request.user
+    ).select_related('author').all()
+    paginator = Paginator(posts, POSTS_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    context = {
+        "page_obj": page_obj,
+    }
     return render(request, 'posts/follow.html', context)
+
 
 @login_required
 def profile_follow(request, username):
-    pass
+    author = get_object_or_404(User, username=username)
+    is_following = Follow.objects.filter(
+        user=request.user,
+        author=author
+    ).exists()
+    if request.user != author and not is_following:
+        Follow.objects.create(user=request.user, author=author)
+    return redirect('posts:profile', username=username)
+
 
 @login_required
 def profile_unfollow(request, username):
-    pass
-
+    Follow.objects.filter(
+        user=request.user,
+        author__username=username
+    ).delete()
+    return redirect('posts:profile', username=username)

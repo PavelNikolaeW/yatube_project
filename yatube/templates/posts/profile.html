@@ -2,21 +2,21 @@
 {% load custom_filters %}
 {% block title %}Профайл пользователя {{ username }}{% endblock %}
 {% block content %}
-    <h5>{{following|print_dir}}</h5>
     <div class="py-5">
         <div class="row align-items-space-between">
             <h1 class="col-md-10">Все посты пользователя {{ username }}</h1>
-            <div class="col-md-2">
-                {% if following %}
-                <a class="btn btn-lg btn-light"
-                href="{% url 'posts:profile_unfollow' username %}"
-                role="button">Отписаться</a>
-                {% else %}
-                <a class="btn btn-lg btn-primary"
-                href="{% url 'posts:profile_follow' username %}"
-                role="button">Подписаться</a>
+            <div class="mb-5">
+                {% if user.is_authenticated and request.resolver_match.kwargs.username != request.user.username %}
+                    {% if following %}
+                        <a class="btn btn-lg btn-light"
+                           href="{% url 'posts:profile_unfollow' username %}"
+                           role="button">Отписаться</a>
+                    {% else %}
+                        <a class="btn btn-lg btn-primary"
+                           href="{% url 'posts:profile_follow' username %}"
+                           role="button">Подписаться</a>
+                    {% endif %}
                 {% endif %}
-                
             </div>
             <h3>Всего постов: {{ count }}</h3>
         </div>

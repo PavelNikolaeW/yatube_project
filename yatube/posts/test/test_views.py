@@ -1,11 +1,21 @@
+import shutil
+import tempfile
+
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django import forms
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
+from http import HTTPStatus
+from django.conf import settings
 
-from ..models import Post, Group
+from ..models import Post, Group, Follow
 
 User = get_user_model()
+
+
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
 class PostViewsTests(TestCase):
@@ -30,6 +40,7 @@ class PostViewsTests(TestCase):
         self.guest_client = Client()
         self.auth_client = Client()
         self.auth_client.force_login(PostViewsTests.user)
+        cache.clear()
 
     def test_pages_uses_correct_template(self):
         post_id = PostViewsTests.post.id
@@ -147,6 +158,7 @@ class PaginatorViewsTests(TestCase):
     def setUp(self):
         self.auth_client = Client()
         self.auth_client.force_login(PaginatorViewsTests.user)
+        cache.clear()
 
     def test_paginator_first_page(self):
         group_slug = PaginatorViewsTests.group.slug
@@ -243,3 +255,119 @@ class CommentViewsTests(TestCase):
             args=[CommentViewsTests.post.id]
         ))
         self.assertContains(response, self.comment_data['text'])
+
+
+class FollowTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth')
+        cls.user1 = User.objects.create_user(username='auth1')
+
+    def setUp(self):
+        self.auth_client = Client()
+        self.auth_client.force_login(FollowTests.user)
+        self.username = FollowTests.user.username
+        self.username1 = FollowTests.user1.username
+
+    def test_follow(self):
+        self.auth_client.get(
+            reverse('posts:profile_follow', args=[self.username1])
+        )
+        self.assertTrue(
+            Follow.objects.filter(
+                user=FollowTests.user,
+                author=FollowTests.user1
+            )
+        )
+        self.auth_client.get(
+            reverse('posts:profile_unfollow', args=[self.username1])
+        )
+        self.assertFalse(
+            Follow.objects.filter(
+                user=FollowTests.user,
+                author=FollowTests.user1
+            )
+        )
+        self.auth_client.get(
+            reverse('posts:profile_follow', args=[self.username])
+        )
+        self.assertFalse(
+            Follow.objects.filter(
+                user=FollowTests.user,
+                author=FollowTests.user
+            )
+        )
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class ImgUpload(TestCase):
+    def setUp(self):
+        self.auth_client = Client()
+        self.user = User.objects.create_user(username='auth')
+        self.auth_client.force_login(self.user)
+        Group.objects.create(
+            title='Тестовая группа',
+            slug='www',
+        )
+        cache.clear()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
+    def test_img_upload(self):
+        image = SimpleUploadedFile(
+            name='small.gif',
+            content=(
+                b'\x47\x49\x46\x38\x39\x61\x01\x00'
+                b'\x01\x00\x00\x00\x00\x21\xf9\x04'
+                b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
+                b'\x00\x00\x01\x00\x01\x00\x00\x02'
+                b'\x02\x4c\x01\x00\x3b'
+            ),
+            content_type='image/gif'
+        )
+        post_data = {
+            "text": "Test post",
+            "group": 1,
+            "image": image
+        }
+        self.auth_client.post(reverse('posts:post_create'), post_data)
+        urls = [
+            reverse('posts:index'),
+            reverse('posts:profile', args=[self.user.username]),
+            reverse('posts:group_list', kwargs={'slug': 'www'}),
+            reverse('posts:post_detail', args=[1]),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.auth_client.get(url)
+                self.assertContains(response, '<img class="card-img my-2"')
+
+    def test_not_allowed_file(self):
+        image = SimpleUploadedFile(
+            name='small.gif',
+            content=(
+                b'kek'
+            ),
+            content_type='text/txt'
+        )
+        post_data = {
+            "text": "Test post",
+            "group": 1,
+            "image": image
+        }
+        response = self.auth_client.post(
+            reverse('posts:post_create'),
+            post_data
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertFormError(
+            response,
+            'form',
+            'image',
+            "Загрузите правильное изображение. Файл, который вы "
+            "загрузили, поврежден или не является изображением."
+        )

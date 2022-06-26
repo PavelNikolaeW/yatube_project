@@ -8,7 +8,6 @@
             <ul class="list-group list-group-flush">
                 <li class="list-group-item">Дата публикации: {{ post.pub_date|date }}  {{ post.pub_date|time:"H:i" }}</li>
                 {% if post.group %}
-                    <!-- если у поста есть группа -->
                     <li class="list-group-item">
                         Группа:
                         <a href="{% url 'posts:group_list' post.group.slug %}">{{ post.group }}</a>
